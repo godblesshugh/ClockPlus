@@ -40,6 +40,7 @@ public class StopwatchNotificationService extends ChronometerNotificationService
     private static final String TAG = "StopwatchNotifService";
 
     public static final String ACTION_ADD_LAP = "com.philliphsu.clock2.stopwatch.action.ADD_LAP";
+    public static final String ACTION_NEXT_LAP = "com.philliphsu.clock2.stopwatch.action.ACTION_NEXT_LAP";
     public static final String ACTION_UPDATE_LAP_TITLE = "com.philliphsu.clock2.stopwatch.action.UPDATE_LAP_TITLE";
 
     public static final String EXTRA_LAP_NUMBER = "com.philliphsu.clock2.stopwatch.extra.LAP_NUMBER";
@@ -132,11 +133,11 @@ public class StopwatchNotificationService extends ChronometerNotificationService
         boolean running = mPrefs.getBoolean(StopwatchFragment.KEY_CHRONOMETER_RUNNING, false);
         SharedPreferences.Editor editor = mPrefs.edit();
         editor.putBoolean(StopwatchFragment.KEY_CHRONOMETER_RUNNING, !running);
+        if (mCurrentLap == null) { // avoid null point error
+            mCurrentLap = mUpdateHandler.getTableManager().queryCurrentLap().getItem();
+        }
         if (running) {
             editor.putLong(StopwatchFragment.KEY_PAUSE_TIME, SystemClock.elapsedRealtime());
-            if (mCurrentLap == null) { // avoid null point error
-                mCurrentLap = mUpdateHandler.getTableManager().queryCurrentLap().getItem();
-            }
             mCurrentLap.pause();
             mUpdateHandler.asyncUpdate(mCurrentLap.getId(), mCurrentLap);
         } else {
@@ -190,27 +191,48 @@ public class StopwatchNotificationService extends ChronometerNotificationService
 
     @Override
     protected void handleAction(@NonNull String action, Intent intent, int flags, int startId) {
-        if (ACTION_ADD_LAP.equals(action)) {
-            if (mPrefs.getBoolean(StopwatchFragment.KEY_CHRONOMETER_RUNNING, false)) {
-                mDelegate.setBase(mPrefs.getLong(StopwatchFragment.KEY_START_TIME, SystemClock.elapsedRealtime()));
-                String timestamp = mDelegate.formatElapsedTime(SystemClock.elapsedRealtime(),
-                        null/*Resources not needed here*/).toString();
-                mCurrentLap.end(timestamp);
-                mUpdateHandler.asyncUpdate(mCurrentLap.getId(), mCurrentLap);
+        switch (action) {
+            case ACTION_ADD_LAP: {
+                if (mPrefs.getBoolean(StopwatchFragment.KEY_CHRONOMETER_RUNNING, false)) {
+                    mDelegate.setBase(mPrefs.getLong(StopwatchFragment.KEY_START_TIME, SystemClock.elapsedRealtime()));
+                    String timestamp = mDelegate.formatElapsedTime(SystemClock.elapsedRealtime(),
+                            null/*Resources not needed here*/).toString();
+                    mCurrentLap.end(timestamp);
+                    mUpdateHandler.asyncUpdate(mCurrentLap.getId(), mCurrentLap);
 
-                Lap newLap = new Lap();
-                mUpdateHandler.asyncInsert(newLap);
-                mCurrentLap = newLap;
+                    Lap newLap = new Lap();
+                    mUpdateHandler.asyncInsert(newLap);
+                    mCurrentLap = newLap;
+                }
+                break;
             }
-        } else if (ACTION_UPDATE_LAP_TITLE.equals(action)) {
-            int lapNumber = intent.getIntExtra(EXTRA_LAP_NUMBER, 0);
-            if (lapNumber == 0) {
-                Log.w(TAG, "Lap number was not passed in with intent");
+            case ACTION_UPDATE_LAP_TITLE: {
+                int lapNumber = intent.getIntExtra(EXTRA_LAP_NUMBER, 0);
+                if (lapNumber == 0) {
+                    Log.w(TAG, "Lap number was not passed in with intent");
+                }
+                setContentTitle(getNoteId(), getString(R.string.stopwatch_and_lap_number, lapNumber));
+                updateNotification(getNoteId(), true);
+                break;
             }
-            setContentTitle(getNoteId(), getString(R.string.stopwatch_and_lap_number, lapNumber));
-            updateNotification(getNoteId(), true);
-        } else {
-            throw new IllegalArgumentException("StopwatchNotificationService cannot handle action " + action);
+            case ACTION_NEXT_LAP: {
+                if (mPrefs.getBoolean(StopwatchFragment.KEY_CHRONOMETER_RUNNING, false)) {
+//                    mDelegate.setBase(mPrefs.getLong(StopwatchFragment.KEY_START_TIME, SystemClock.elapsedRealtime()));
+                    String timestamp = mDelegate.formatElapsedTime(SystemClock.elapsedRealtime(),
+                            null/*Resources not needed here*/).toString();
+                    mCurrentLap.end(timestamp);
+                    mUpdateHandler.asyncUpdate(mCurrentLap.getId(), mCurrentLap);
+
+                    Lap newLap = new Lap();
+                    mUpdateHandler.asyncInsert(newLap);
+                    mCurrentLap = newLap;
+                }
+                handleStartPauseAction(intent, flags, startId);
+                break;
+            }
+            default:{
+                throw new IllegalArgumentException("StopwatchNotificationService cannot handle action " + action);
+            }
         }
     }
 

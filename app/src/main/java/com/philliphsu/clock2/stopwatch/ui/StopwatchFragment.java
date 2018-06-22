@@ -278,19 +278,26 @@ public class StopwatchFragment extends RecyclerViewFragment<
                 .setAction(StopwatchNotificationService.ACTION_ADD_LAP);
         getActivity().startService(serviceIntent);
     }
+//
+//    @OnClick(R.id.stop)
+//    void stop() {
+//        // Remove the notification. This will also write to prefs and clear the laps table.
+//        Intent stop = new Intent(getActivity(), StopwatchNotificationService.class)
+//                .setAction(StopwatchNotificationService.ACTION_STOP);
+//        getActivity().startService(stop);
+//    }
 
     @OnClick(R.id.stop)
-    void stop() {
+    void nextLap() {
         // Remove the notification. This will also write to prefs and clear the laps table.
-        Intent stop = new Intent(getActivity(), StopwatchNotificationService.class)
-                .setAction(StopwatchNotificationService.ACTION_STOP);
-        getActivity().startService(stop);
+        Intent nextLap = new Intent(getActivity(), StopwatchNotificationService.class)
+                .setAction(StopwatchNotificationService.ACTION_NEXT_LAP);
+        getActivity().startService(nextLap);
     }
 
     private void setMiniFabsVisible(boolean visible) {
-        int vis = visible ? View.VISIBLE : View.INVISIBLE;
-        mNewLapButton.setVisibility(vis);
-        mStopButton.setVisibility(vis);
+        mNewLapButton.setVisibility(View.VISIBLE);
+        mStopButton.setVisibility(View.VISIBLE);
     }
 
     private void syncFabIconWithStopwatchState(boolean running) {
