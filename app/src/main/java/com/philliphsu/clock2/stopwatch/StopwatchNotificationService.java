@@ -134,6 +134,9 @@ public class StopwatchNotificationService extends ChronometerNotificationService
         editor.putBoolean(StopwatchFragment.KEY_CHRONOMETER_RUNNING, !running);
         if (running) {
             editor.putLong(StopwatchFragment.KEY_PAUSE_TIME, SystemClock.elapsedRealtime());
+            if (mCurrentLap == null) { // avoid null point error
+                mCurrentLap = mUpdateHandler.getTableManager().queryCurrentLap().getItem();
+            }
             mCurrentLap.pause();
             mUpdateHandler.asyncUpdate(mCurrentLap.getId(), mCurrentLap);
         } else {
